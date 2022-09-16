@@ -1,14 +1,9 @@
 import { useLazyQuery } from "@apollo/client";
 import { useCallback, useEffect, useState } from "react";
 import { GET_TOPICS } from "../queries";
+import { TopicProps } from "../types";
+import { checkExistInTree } from "../utils";
 import { Loading } from "./Loading";
-
-export interface TopicProps {
-  name: string;
-  stargazerCount: number;
-  relatedTopics?: TopicProps[];
-  parent?: TopicProps;
-}
 
 export const Topic = ({
   topic,
@@ -27,21 +22,6 @@ export const Topic = ({
   const [internalTopic, setInternalTopic] = useState<TopicProps>(topic);
   const [isExtended, setIsExtended] = useState<boolean>(extended);
 
-  const checkExistInTree = useCallback(
-    (name: string, parent?: TopicProps): boolean => {
-      if (parent) {
-        if (name === parent.name) return true;
-        if (parent.relatedTopics?.some((t: TopicProps) => t.name === name)) {
-          return true;
-        } else {
-          return checkExistInTree(name, parent.parent);
-        }
-      }
-      return false;
-    },
-    []
-  );
-
   useEffect(() => {
     if (isExtended && !internalTopic.relatedTopics) {
       getRelatedTopics({ variables: { name: topic.name } });
@@ -58,7 +38,7 @@ export const Topic = ({
         ),
       }));
     }
-  }, [checkExistInTree, data, topic]);
+  }, [data, topic]);
 
   const updateExtended = useCallback(() => setIsExtended((prev) => !prev), []);
 

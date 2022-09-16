@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useQuery } from "@apollo/client";
 import { Loading } from "../components/Loading";
-import { Topic, TopicProps } from "../components/Topic";
+import { Topic } from "../components/Topic";
 import { GET_TOPICS } from "../queries";
 import { useDebounce } from "../hooks/useDeounce";
+import { TopicProps } from "../types";
 
 export const Home = () => {
   const [search, setSearch] = useState<string>("react");
