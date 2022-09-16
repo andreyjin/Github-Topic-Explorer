@@ -7,6 +7,7 @@ export interface TopicProps {
   name: string;
   stargazerCount: number;
   relatedTopics?: TopicProps[];
+  parent?: TopicProps;
 }
 
 export const Topic = ({
@@ -23,22 +24,41 @@ export const Topic = ({
     }
   );
 
-  const [relatedTopics, setRelatedTopic] = useState<TopicProps[]>(
-    topic?.relatedTopics ?? []
-  );
-
+  const [internalTopic, setInternalTopic] = useState<TopicProps>(topic);
   const [isExtended, setIsExtended] = useState<boolean>(extended);
 
+  const checkExistInTree = useCallback(
+    (name: string, parent?: TopicProps): boolean => {
+      if (parent) {
+        if (name === parent.name) return true;
+        if (parent.relatedTopics?.some((t: TopicProps) => t.name === name)) {
+          return true;
+        } else {
+          return checkExistInTree(name, parent.parent);
+        }
+      }
+      return false;
+    },
+    []
+  );
+
   useEffect(() => {
-    if (isExtended && relatedTopics.length === 0) {
+    if (isExtended && !internalTopic.relatedTopics) {
       getRelatedTopics({ variables: { name: topic.name } });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isExtended, topic.name, getRelatedTopics]);
 
   useEffect(() => {
-    data && setRelatedTopic(data.topic?.relatedTopics);
-  }, [data]);
+    if (data) {
+      setInternalTopic((prev) => ({
+        ...prev,
+        relatedTopics: data.topic?.relatedTopics.filter(
+          (t: TopicProps) => !topic.parent || !checkExistInTree(t.name, topic)
+        ),
+      }));
+    }
+  }, [checkExistInTree, data, topic]);
 
   const updateExtended = useCallback(() => setIsExtended((prev) => !prev), []);
 
@@ -50,12 +70,14 @@ export const Topic = ({
         }`}
         onClick={updateExtended}
       >
-        <div>{isExtended ? "-" : "+"}</div>
+        <div className={isExtended ? "text-blue-500 text-2xl" : "text-grey"}>
+          {isExtended ? "★" : "☆"}
+        </div>
         <div className="flex flex-1 items-center justify-between">
           <div className={`text-2xl mx-2 ${isExtended ? "text-blue-600" : ""}`}>
-            {topic?.name}
+            {internalTopic?.name}
           </div>
-          <div>{topic?.stargazerCount}</div>
+          <div>{internalTopic?.stargazerCount}</div>
         </div>
       </div>
       {isExtended &&
@@ -67,8 +89,12 @@ export const Topic = ({
           </div>
         ) : (
           <div className="pl-5">
-            {relatedTopics?.map((t: TopicProps) => (
-              <Topic topic={t} key={t.name} extended={false} />
+            {internalTopic.relatedTopics?.map((t: TopicProps) => (
+              <Topic
+                topic={{ ...t, parent: internalTopic }}
+                key={t.name}
+                extended={false}
+              />
             ))}
           </div>
         ))}
